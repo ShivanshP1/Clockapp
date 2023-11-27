@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:analog_clock/analog_clock.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -46,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _currentIndex = index;
           });
         },
-        items: [
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Dashboard',
@@ -65,90 +66,64 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class PageTwo extends StatelessWidget {
+class PageThree extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: RadialGradient(
-          center: Alignment(0, 0),
-          tileMode: TileMode.clamp,
-          radius: 0.7,
-          stops: <double>[0.1, 0.25],
-          colors: [
-            Color.fromARGB(255, 69, 169, 201),
-            Color.fromARGB(255, 251, 255, 255),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sensors'),
       ),
-      child: Center(
-        child: AnalogClock(
-          decoration: BoxDecoration(
-            border: Border.all(width: 2.0, color: Colors.black),
-            color: Colors.white70,
-            shape: BoxShape.circle,
-          ),
-          width: 250.0,
-          isLive: true,
-          hourHandColor: Colors.black,
-          minuteHandColor: Colors.black,
-          secondHandColor: Colors.red,
-          numberColor: Colors.black87,
-          showNumbers: true,
-          showTicks: true,
-          textScaleFactor: 1.7,
-          showDigitalClock: false,
-          digitalClockColor: Colors.black,
-        ),
+      body: Container(
+        color: Colors.white,
+        child: const Center(),
       ),
     );
   }
 }
 
-class PageThree extends StatelessWidget {
+class PageTwo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.blue,
-      child: Center(),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Alarm'),
+      ),
+      body: Container(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _selectTime(context);
+        },
+        child: Icon(Icons.alarm),
+      ),
     );
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (picked != null) {
+      print('Selected time: ${picked.format(context)}');
+      // You can implement alarm functionality here
+    } else {
+      print('Time selection canceled.');
+      // Handle the case where the user canceled the time picker
+    }
   }
 }
 
 class PageOne extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: GridView.count(
-        crossAxisCount: 3, // Set the number of columns to 3 for a 3x3 grid
-        children: [
-          _buildGridItem(['Item 1']),
-          _buildGridItem(['Item 2']),
-          _buildGridItem(['Item 3']),
-          _buildGridItem(['Item 4']),
-          _buildGridItem(['Item 5']),
-          _buildGridItem(['Item 6']),
-          _buildGridItem(['Item 7']),
-          _buildGridItem(['Item 8']),
-          _buildGridItem(['Item 9']),
-        ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Dashboard'),
+      ),
+      body: Container(
+        color: Colors.white,
       ),
     );
   }
-}
-
-Widget _buildGridItem(List<String> texts) {
-  return Card(
-    margin: EdgeInsets.all(8.0),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: texts.map((text) {
-        return Text(
-          text,
-          style: TextStyle(fontSize: 20.0),
-        );
-      }).toList(),
-    ),
-  );
 }
