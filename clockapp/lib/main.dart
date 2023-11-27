@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:timezone/standalone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await tz.initializeTimeZones();
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -16,14 +19,12 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
@@ -32,17 +33,14 @@ class _MyHomePageState extends State<MyHomePage> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    const PageOne(),
-    const PageTwo(),
-    const PageThree(),
+    PageOne(),
+    PageTwo(),
+    PageThree(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bottom Navigation Example'),
-      ),
       body: _pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -71,58 +69,52 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class PageThree extends StatelessWidget {
-  const PageThree({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sensors'),
-      ),
-      body: Container(
-        color: Colors.white,
-        child: const Center(),
-      ),
+    return Container(
+      color: Colors.white,
+      child: const Center(),
     );
   }
 }
 
 class PageTwo extends StatefulWidget {
-  const PageTwo({super.key});
-
   @override
   _PageTwoState createState() => _PageTwoState();
 }
 
 class _PageTwoState extends State<PageTwo> {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin? flutterLocalNotificationsPlugin;
 
   // List to store alarms
   List<String> alarms = [];
 
-  _PageTwoState() {
-    // Initialize the notification plugin
-    const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('app_icon');
-    const InitializationSettings initializationSettings =
-        InitializationSettings(android: initializationSettingsAndroid);
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onSelectNotification: onSelectNotification);
+  @override
+  void initState() {
+    super.initState();
+
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    // Check if flutterLocalNotificationsPlugin is not null before using it
+    if (flutterLocalNotificationsPlugin != null) {
+      final AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('app_icon');
+      final InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
+      flutterLocalNotificationsPlugin!.initialize(initializationSettings,
+          onSelectNotification: onSelectNotification);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alarm'),
-      ),
       body: _buildAlarmList(),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _selectTime(context);
         },
-        child: const Icon(Icons.alarm),
+        child: Icon(Icons.alarm),
       ),
     );
   }
@@ -155,7 +147,8 @@ class _PageTwoState extends State<PageTwo> {
   }
 
   Future<void> _scheduleNotification(TimeOfDay pickedTime) async {
-    final DateTime now = DateTime.now();
+    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+
     DateTime scheduledTime = DateTime(
       now.year,
       now.month,
@@ -165,11 +158,17 @@ class _PageTwoState extends State<PageTwo> {
     );
 
     if (scheduledTime.isBefore(now)) {
-      scheduledTime = scheduledTime.add(const Duration(days: 1));
+      scheduledTime = scheduledTime.add(Duration(days: 1));
     }
 
-    final tz.TZDateTime scheduledDateTime =
-        tz.TZDateTime.from(scheduledTime, tz.local);
+    final tz.TZDateTime scheduledDateTime = tz.TZDateTime(
+      tz.local,
+      scheduledTime.year,
+      scheduledTime.month,
+      scheduledTime.day,
+      scheduledTime.hour,
+      scheduledTime.minute,
+    );
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
@@ -185,21 +184,24 @@ class _PageTwoState extends State<PageTwo> {
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      0,
-      'Alarm',
-      'Time to wake up!',
-      scheduledDateTime,
-      platformChannelSpecifics,
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
+    // Check if flutterLocalNotificationsPlugin is not null before using it
+    if (flutterLocalNotificationsPlugin != null) {
+      await flutterLocalNotificationsPlugin!.zonedSchedule(
+        0,
+        'Alarm',
+        'Time to wake up!',
+        scheduledDateTime,
+        platformChannelSpecifics,
+        androidAllowWhileIdle: true,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
 
-    // Update the list of alarms
-    setState(() {
-      alarms.add('Alarm at ${pickedTime.format(context)}');
-    });
+      // Update the list of alarms
+      setState(() {
+        alarms.add('Alarm at ${pickedTime.format(context)}');
+      });
+    }
   }
 
   Future<void> onSelectNotification(String? payload) async {
@@ -209,17 +211,10 @@ class _PageTwoState extends State<PageTwo> {
 }
 
 class PageOne extends StatelessWidget {
-  const PageOne({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-      ),
-      body: Container(
-        color: Colors.white,
-      ),
+    return Container(
+      color: Colors.white,
     );
   }
 }
