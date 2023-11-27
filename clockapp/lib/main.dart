@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:timezone/standalone.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await tz.initializeTimeZones();
-
+  // await tz.initializeTimeZones(); // Corrected function name
   runApp(MyApp());
 }
 
@@ -174,6 +173,7 @@ class _PageTwoState extends State<PageTwo> {
         AndroidNotificationDetails(
       'alarm_channel',
       'Alarm notifications',
+      'Channel Discription',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
