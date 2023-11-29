@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/intl.dart'; // Import the intl package for date formatting
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  // await tz.initializeTimeZones(); // Corrected function name
+void main() {
   runApp(MyApp());
 }
 
@@ -122,8 +120,16 @@ class _PageTwoState extends State<PageTwo> {
     return ListView.builder(
       itemCount: alarms.length,
       itemBuilder: (context, index) {
+        // Convert the formatted string back to TimeOfDay for display
+        TimeOfDay alarmTime = TimeOfDay.fromDateTime(
+          DateFormat.jm().parse(alarms[index]),
+        );
+
         return ListTile(
-          title: Text(alarms[index]),
+          title: Text(
+            formatAlarmTime(alarmTime),
+            style: TextStyle(fontSize: 18.0),
+          ),
         );
       },
     );
@@ -146,7 +152,7 @@ class _PageTwoState extends State<PageTwo> {
   }
 
   Future<void> _scheduleNotification(TimeOfDay pickedTime) async {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
+    DateTime now = DateTime.now();
 
     DateTime scheduledTime = DateTime(
       now.year,
@@ -160,20 +166,11 @@ class _PageTwoState extends State<PageTwo> {
       scheduledTime = scheduledTime.add(Duration(days: 1));
     }
 
-    final tz.TZDateTime scheduledDateTime = tz.TZDateTime(
-      tz.local,
-      scheduledTime.year,
-      scheduledTime.month,
-      scheduledTime.day,
-      scheduledTime.hour,
-      scheduledTime.minute,
-    );
-
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'alarm_channel',
       'Alarm notifications',
-      'Channel Discription',
+      'Channel Description',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
@@ -186,20 +183,17 @@ class _PageTwoState extends State<PageTwo> {
 
     // Check if flutterLocalNotificationsPlugin is not null before using it
     if (flutterLocalNotificationsPlugin != null) {
-      await flutterLocalNotificationsPlugin!.zonedSchedule(
+      await flutterLocalNotificationsPlugin!.showDailyAtTime(
         0,
         'Alarm',
         'Time to wake up!',
-        scheduledDateTime,
+        Time(scheduledTime.hour, scheduledTime.minute),
         platformChannelSpecifics,
-        androidAllowWhileIdle: true,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
       );
 
       // Update the list of alarms
       setState(() {
-        alarms.add('Alarm at ${pickedTime.format(context)}');
+        alarms.add(formatAlarmTime(pickedTime));
       });
     }
   }
@@ -208,13 +202,29 @@ class _PageTwoState extends State<PageTwo> {
     // Handle when the user taps on the notification
     print('Notification tapped with payload: $payload');
   }
+
+  // Format the alarm time to a user-friendly string
+  String formatAlarmTime(TimeOfDay time) {
+    DateTime now = DateTime.now();
+    DateTime alarmTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      time.hour,
+      time.minute,
+    );
+
+    return DateFormat.jm().format(alarmTime);
+  }
 }
 
+//////////////////////////////////////////////////////////////////////////////
 class PageOne extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
+      padding: EdgeInsets.all(16.0),
     );
   }
 }
