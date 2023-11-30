@@ -219,12 +219,35 @@ class _PageTwoState extends State<PageTwo> {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+
 class PageOne extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.all(16.0),
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      height: 200,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: <Widget>[
+          _buildCircularCard(Colors.red),
+          _buildCircularCard(Colors.blue),
+          _buildCircularCard(Colors.green),
+          _buildCircularCard(Colors.yellow),
+          _buildCircularCard(Colors.orange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCircularCard(Color color) {
+    return Container(
+      width: 160,
+      margin: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        shape: BoxShape.rectangle,
+        color: color,
+      ),
     );
   }
 }
