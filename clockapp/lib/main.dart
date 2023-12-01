@@ -1,9 +1,11 @@
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, avoid_print
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:intl/intl.dart'; // Import the intl package for date formatting
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -16,12 +18,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
@@ -30,9 +34,9 @@ class _MyHomePageState extends State<MyHomePage> {
   int _currentIndex = 0;
 
   final List<Widget> _pages = [
-    PageOne(),
-    PageTwo(),
-    PageThree(),
+    const PageOne(),
+    const PageTwo(),
+    const PageThree(),
   ];
 
   @override
@@ -57,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),
-            label: 'Sensors',
+            label: 'Settings',
           ),
         ],
       ),
@@ -66,6 +70,8 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class PageThree extends StatelessWidget {
+  const PageThree({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -76,6 +82,8 @@ class PageThree extends StatelessWidget {
 }
 
 class PageTwo extends StatefulWidget {
+  const PageTwo({super.key});
+
   @override
   _PageTwoState createState() => _PageTwoState();
 }
@@ -94,13 +102,16 @@ class _PageTwoState extends State<PageTwo> {
 
     // Check if flutterLocalNotificationsPlugin is not null before using it
     if (flutterLocalNotificationsPlugin != null) {
-      final AndroidInitializationSettings initializationSettingsAndroid =
+      const AndroidInitializationSettings initializationSettingsAndroid =
           AndroidInitializationSettings('app_icon');
-      final InitializationSettings initializationSettings =
+      const InitializationSettings initializationSettings =
           InitializationSettings(android: initializationSettingsAndroid);
       flutterLocalNotificationsPlugin!.initialize(initializationSettings,
           onSelectNotification: onSelectNotification);
     }
+
+    // Load saved alarms from SharedPreferences
+    _loadAlarms();
   }
 
   @override
@@ -111,7 +122,7 @@ class _PageTwoState extends State<PageTwo> {
         onPressed: () {
           _selectTime(context);
         },
-        child: Icon(Icons.alarm),
+        child: const Icon(Icons.alarm),
       ),
     );
   }
@@ -125,45 +136,120 @@ class _PageTwoState extends State<PageTwo> {
           DateFormat.jm().parse(alarms[index]),
         );
 
-        return ListTile(
-          title: Text(
-            formatAlarmTime(alarmTime),
-            style: TextStyle(fontSize: 18.0),
-          ),
-        );
+        return _buildAlarmCard(alarmTime, index);
       },
     );
   }
 
-  Future<void> _selectTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (picked != null) {
-      print('Selected time: ${picked.format(context)}');
-      // Schedule a notification for the selected time
-      _scheduleNotification(picked);
-    } else {
-      print('Time selection canceled.');
-      // Handle the case where the user canceled the time picker
-    }
-  }
-
-  Future<void> _scheduleNotification(TimeOfDay pickedTime) async {
+  Widget _buildAlarmCard(TimeOfDay alarmTime, int index) {
     DateTime now = DateTime.now();
-
-    DateTime scheduledTime = DateTime(
+    DateTime alarmDateTime = DateTime(
       now.year,
       now.month,
       now.day,
-      pickedTime.hour,
-      pickedTime.minute,
+      alarmTime.hour,
+      alarmTime.minute,
     );
 
-    if (scheduledTime.isBefore(now)) {
-      scheduledTime = scheduledTime.add(Duration(days: 1));
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Alarm Time',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {
+                    _deleteAlarm(index);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              formatAlarmTime(alarmTime),
+              style: const TextStyle(fontSize: 18.0),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Remaining time: ${_calculateRemainingTime(alarmDateTime)}',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _calculateRemainingTime(DateTime alarmDateTime) {
+    Duration remainingTime = alarmDateTime.difference(DateTime.now());
+    int hours = remainingTime.inHours;
+    int minutes = (remainingTime.inMinutes % 60);
+
+    if (hours > 0) {
+      return '$hours ${hours == 1 ? 'hour' : 'hours'} and $minutes ${minutes == 1 ? 'minute' : 'minutes'}';
+    } else {
+      return '$minutes ${minutes == 1 ? 'minute' : 'minutes'}';
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    DateTime now = DateTime.now();
+    DateTime initialDateTime = now.add(const Duration(
+        minutes: 1)); // Set an initial time (e.g., one minute from now)
+
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: DateTime(
+          now.year + 1), // Allow choosing dates up to 1 year in the future
+    );
+
+    if (pickedDate != null) {
+      TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(initialDateTime),
+      );
+
+      if (pickedTime != null) {
+        DateTime pickedDateTime = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+
+        print('Selected date and time: ${pickedDateTime.toString()}');
+        // Schedule a notification for the selected date and time
+        _scheduleNotification(pickedDateTime);
+      } else {
+        print('Time selection canceled.');
+        // Handle the case where the user canceled the time picker
+      }
+    } else {
+      print('Date selection canceled.');
+      // Handle the case where the user canceled the date picker
+    }
+  }
+
+  Future<void> _scheduleNotification(DateTime pickedDateTime) async {
+    DateTime now = DateTime.now();
+
+    if (pickedDateTime.isBefore(now)) {
+      print('Selected date and time are in the past.');
+      // Handle the case where the selected date and time are in the past
+      return;
     }
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
@@ -183,18 +269,19 @@ class _PageTwoState extends State<PageTwo> {
 
     // Check if flutterLocalNotificationsPlugin is not null before using it
     if (flutterLocalNotificationsPlugin != null) {
-      await flutterLocalNotificationsPlugin!.showDailyAtTime(
+      await flutterLocalNotificationsPlugin!.schedule(
         0,
         'Alarm',
         'Time to wake up!',
-        Time(scheduledTime.hour, scheduledTime.minute),
+        pickedDateTime,
         platformChannelSpecifics,
       );
 
-      // Update the list of alarms
+      // Update the list of alarms and save to SharedPreferences
       setState(() {
-        alarms.add(formatAlarmTime(pickedTime));
+        alarms.add(formatAlarmTime(TimeOfDay.fromDateTime(pickedDateTime)));
       });
+      _saveAlarms();
     }
   }
 
@@ -216,38 +303,157 @@ class _PageTwoState extends State<PageTwo> {
 
     return DateFormat.jm().format(alarmTime);
   }
+
+  // Load saved alarms from SharedPreferences
+  Future<void> _loadAlarms() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      alarms = prefs.getStringList('alarms') ?? [];
+    });
+  }
+
+  // Save alarms to SharedPreferences
+  Future<void> _saveAlarms() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setStringList('alarms', alarms);
+  }
+
+  // Delete an alarm
+  void _deleteAlarm(int index) {
+    setState(() {
+      alarms.removeAt(index);
+      _saveAlarms();
+    });
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
 
+// ... (your existing code)
+
 class PageOne extends StatelessWidget {
+  const PageOne({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      margin: const EdgeInsets.symmetric(vertical: 20),
-      height: 200,
+      padding: const EdgeInsets.symmetric(vertical: 20),
       child: ListView(
-        scrollDirection: Axis.horizontal,
         children: <Widget>[
-          _buildCircularCard(Colors.red),
-          _buildCircularCard(Colors.blue),
-          _buildCircularCard(Colors.green),
-          _buildCircularCard(Colors.yellow),
-          _buildCircularCard(Colors.orange),
+          _buildSectionTitle('Categories'),
+          _buildCategoryList(),
+          _buildSectionTitle('Featured Items'),
+          _buildFeaturedItemList(),
+          _buildSectionTitle('Additional Section'),
+          _buildAdditionalSection(),
         ],
       ),
     );
   }
 
-  Widget _buildCircularCard(Color color) {
-    return Container(
-      width: 160,
-      margin: EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        shape: BoxShape.rectangle,
-        color: color,
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        title,
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
       ),
     );
   }
+
+  Widget _buildCategoryList() {
+    return Container(
+      height: 120,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: <Widget>[
+          _buildCategoryItem('Electronics', Icons.devices),
+          _buildCategoryItem('Clothing', Icons.accessibility),
+          _buildCategoryItem('Books', Icons.book),
+          _buildCategoryItem('Sports', Icons.sports),
+          _buildCategoryItem('Home', Icons.home),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryItem(String title, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      width: 100,
+      child: Card(
+        child: ListTile(
+          title: Text(title),
+          leading: Icon(icon),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeaturedItemList() {
+    return Container(
+      height: 200,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: <Widget>[
+          _buildFeaturedItem(
+              'Smartphone', 'High-performance smartphone', Icons.phone),
+          _buildFeaturedItem(
+              'Laptop', 'Lightweight and powerful laptop', Icons.laptop),
+          _buildFeaturedItem('Running Shoes', 'Comfortable running shoes',
+              Icons.directions_run),
+          _buildFeaturedItem('Novel', 'Best-selling novel', Icons.menu_book),
+          _buildFeaturedItem(
+              'Sofa', 'Elegant and comfortable sofa', Icons.weekend),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturedItem(String title, String description, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      width: 160,
+      child: Card(
+        child: ListTile(
+          title: Text(title),
+          subtitle: Text(description),
+          leading: Icon(icon),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _buildAdditionalSection() {
+  return Container(
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.blue.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Welcome to Our App!',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Explore the latest trends and discover amazing products.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            // Handle button press
+          },
+          child: Text('Get Started'),
+        ),
+      ],
+    ),
+  );
 }
