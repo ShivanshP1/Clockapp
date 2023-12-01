@@ -1,5 +1,7 @@
 // ignore: file_names
 // ignore_for_file: use_key_in_widget_constructors, use_super_parameters
+// pages/page_one.dart
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'dart:math';
@@ -14,9 +16,9 @@ class PageOne extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: ListView(
         children: <Widget>[
-          _buildSectionTitle('Categories'),
+          _buildSectionTitle('Future Features'),
           _buildCategoryList(),
-          _buildSectionTitle('Featured Items'),
+          _buildSectionTitle('Your Sleep'),
           _buildFeaturedItemList(),
           _buildSectionTitle('Additional Section'),
           _buildAdditionalSection(),
@@ -37,15 +39,15 @@ class PageOne extends StatelessWidget {
 
   Widget _buildCategoryList() {
     return SizedBox(
-      height: 120,
+      height: 165,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: <Widget>[
-          _buildCategoryItem('Electronics', Icons.devices),
-          _buildCategoryItem('Clothing', Icons.accessibility),
-          _buildCategoryItem('Books', Icons.book),
-          _buildCategoryItem('Sports', Icons.sports),
-          _buildCategoryItem('Home', Icons.home),
+          _buildCategoryItem('Accounts', Icons.account_circle),
+          _buildCategoryItem('Events', Icons.event),
+          _buildCategoryItem('Custom Sounds', Icons.book),
+          _buildCategoryItem('Backups', Icons.restore),
+          _buildCategoryItem('Device', Icons.important_devices),
         ],
       ),
     );
@@ -56,9 +58,28 @@ class PageOne extends StatelessWidget {
       margin: const EdgeInsets.all(8),
       width: 100,
       child: Card(
-        child: ListTile(
-          // title: Text(title),
-          leading: Icon(icon),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Icon at the top, taking most of the space
+            Container(
+              height: 80,
+              child: Icon(icon, size: 40),
+            ),
+            // Text at the bottom with limited height
+            Container(
+              height: 60,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -70,30 +91,28 @@ class PageOne extends StatelessWidget {
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: <Widget>[
-          _buildFeaturedItem('AVG BPM', Icons.phone),
-          _buildFeaturedItem('AVG Sleep', Icons.laptop),
-          _buildFeaturedItem('Streak', Icons.directions_run),
-          _buildFeaturedItem('asd', Icons.menu_book),
-          _buildFeaturedItem('wasd', Icons.weekend),
+          _buildFeaturedItem('AVG BPM', Icons.phone, 0.7),
+          _buildFeaturedItem('AVG Sleep', Icons.laptop, 0.5),
+          _buildFeaturedItem('Streak', Icons.directions_run, 0.3),
+          _buildFeaturedItem('asd', Icons.menu_book, 0.9),
+          _buildFeaturedItem('wasd', Icons.weekend, 0.2),
         ],
       ),
     );
   }
 
-  Widget _buildFeaturedItem(String title, IconData icon) {
-    double progressValue = 0.7; // Set your progress value here
+  Widget _buildFeaturedItem(String title, IconData icon, double progressValue) {
     Color gaugeColor = _getGaugeColor(progressValue);
 
     return Container(
       margin: const EdgeInsets.all(8),
-      width: 200, // Adjust the width to scale up the size
+      width: 200,
       child: Card(
         child: Stack(
           children: [
             Center(
               child: CustomSemiCircularGauge(
-                progressValue: progressValue,
-                gaugeColor: gaugeColor,
+                percentage: (progressValue * 100).toInt(),
               ),
             ),
             Center(
@@ -102,7 +121,7 @@ class PageOne extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black, // Adjust text color as needed
+                  color: Colors.black,
                 ),
               ),
             ),
@@ -139,7 +158,7 @@ class PageOne extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Explore the latest trends and discover amazing products.',
+            'Give us Feed back and let us know how we did, Click the button below and do our survey',
             style: TextStyle(fontSize: 16, color: Colors.grey),
           ),
           const SizedBox(height: 10),
@@ -147,7 +166,7 @@ class PageOne extends StatelessWidget {
             onPressed: () {
               // Handle button press
             },
-            child: const Text('Get Started'),
+            child: const Text('Survey'),
           ),
         ],
       ),
@@ -155,24 +174,23 @@ class PageOne extends StatelessWidget {
   }
 }
 
+// ... (existing code)
+
 class CustomSemiCircularGauge extends StatelessWidget {
-  final double progressValue;
-  final Color gaugeColor;
+  final int percentage; // Input percentage value (1 to 100)
 
   const CustomSemiCircularGauge({
-    required this.progressValue,
-    required this.gaugeColor,
+    required this.percentage,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 500, // Adjust the width to scale up the size
-      height: 100, // Adjust the height to control the size of the semi-circle
+      width: 500,
+      height: 100,
       child: CustomPaint(
         painter: SemiCircularGaugePainter(
-          progressValue: progressValue,
-          gaugeColor: gaugeColor,
+          percentage: percentage,
         ),
       ),
     );
@@ -180,38 +198,44 @@ class CustomSemiCircularGauge extends StatelessWidget {
 }
 
 class SemiCircularGaugePainter extends CustomPainter {
-  final double progressValue;
-  final Color gaugeColor;
+  final int percentage;
 
   SemiCircularGaugePainter({
-    required this.progressValue,
-    required this.gaugeColor,
+    required this.percentage,
   });
-
-  double degreesToRadians(double degrees) {
-    return degrees * pi / 180.0;
-  }
 
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()
       ..color = Colors.grey[300]!
       ..strokeCap = StrokeCap.round
-      ..strokeWidth = 10.0 // Adjust the stroke width to control the size
+      ..strokeWidth = 10.0
       ..style = PaintingStyle.stroke;
 
     final double centerX = size.width / 2;
     final double centerY = size.height / 2;
 
-    paint.color = gaugeColor;
-    final double sweepAngle = 180 * progressValue;
+    paint.color = _getGaugeColor();
+    final double sweepAngle = (3 / 2) * pi * (percentage / 100);
     final Rect rect = Rect.fromCircle(
         center: Offset(centerX, centerY), radius: min(centerX, centerY));
-    canvas.drawArc(rect, pi, degreesToRadians(sweepAngle), false, paint);
+    canvas.drawArc(rect, pi, sweepAngle, false, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
+  }
+
+  Color _getGaugeColor() {
+    // Logic for determining the gauge color based on the percentage
+    // You can customize this logic based on your color preferences
+    if (percentage >= 70) {
+      return Colors.green; // Good
+    } else if (percentage >= 40) {
+      return Colors.yellow; // Ok
+    } else {
+      return Colors.red; // Bad
+    }
   }
 }

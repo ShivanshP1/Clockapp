@@ -31,7 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_local_notifications: ^8.1.1+2 
-  syncfusion_flutter_gauges: ^23.2.6
   shared_preferences: ^2.0.7
   flutter_localizations:
     sdk: flutter
