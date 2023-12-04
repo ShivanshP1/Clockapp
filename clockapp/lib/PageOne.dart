@@ -94,15 +94,15 @@ class PageOne extends StatelessWidget {
           _buildFeaturedItem('AVG BPM', Icons.phone, 0.7),
           _buildFeaturedItem('AVG Sleep', Icons.laptop, 0.5),
           _buildFeaturedItem('Streak', Icons.directions_run, 0.3),
-          _buildFeaturedItem('asd', Icons.menu_book, 0.9),
-          _buildFeaturedItem('wasd', Icons.weekend, 0.2),
+          _buildFeaturedItem('REM Sleep', Icons.menu_book, 0.9),
+          _buildFeaturedItem('Sleep quality', Icons.weekend, 0.2),
         ],
       ),
     );
   }
 
   Widget _buildFeaturedItem(String title, IconData icon, double progressValue) {
-    Color gaugeColor = _getGaugeColor(progressValue);
+    // Color gaugeColor = _getGaugeColor(progressValue);
 
     return Container(
       margin: const EdgeInsets.all(8),
